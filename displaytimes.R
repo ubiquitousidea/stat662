@@ -1,18 +1,89 @@
-# Quickly hashing out idea for how the functions could be laid out
-
-# Outermost function call
-display.times('course_time.csv')
-# The functions may need to be reordered for execution to work. 
-# Unsure how R evaluates function definitions.
-
-display.times <- function(f.name){
-  time.table <- parse.class.times(f.name)  # this function exists
-  block.prms <- compute.blocks(time.table)  # this function doesn't exist yet
-  header.names <- get.header.names(time.table)  # needs to exists
-  plot.time.blocks(block.parms, header.names)  # this will probably be the only function with calls to grid
+# little functions
+compute.time.range <- function(time.table){
+  min.time <- min(time.table$stime)
+  max.time <- max(time.table$etime)
+  return(c(min.time, max.time))
 }
 
-  
+get.header.names <- function(time.table, group.by="day.of.week"){
+  names <- unique(time.table[,group.by])
+}
+
+make.header <- function(header.names){
+  n.names <- length(header.names)
+  x.vect <- seq(
+    0.5 * n.names, 
+    1 - (0.5 * n.names), 
+    n.names)
+  for(i in 1:n.names){
+    grid.text(
+      header.names[i], 
+      x=x.vect[i], y=.5, 
+      just='centre', 
+      gp=gpar(col="black", fontsize=18)
+    )
+  }
+}
+
+make.blocks <- function(block.parms){
+  # expect columns of block.parms to have
+  # x, y, height, width, rgba
+  for(i in 1:nrow(block.parms)){
+    block.data <- block.parms[i,]
+    grid.rect(
+      x = block.data$x,
+      y = block.data$y,
+      height = block.data$height,
+      width = block.data$width,
+      just=top.left,
+      gp=gpar(col="black", fill=block.data$rgba)
+    )
+  }
+}
+
+get.marked.times <- function(min.max.time, n.marks=NULL){
+  min.time <- min.max.time[1]
+  max.time <- min.max.time[2]
+  if(!is.integer(n.marks)){
+    n.marks <- as.integer(max.time - min.time)  # default is 1 mark per hour
+  }
+  marked.times <- seq(min.max.time[1], 
+                      min.max.time[2], 
+                      n.marks)
+  return(marked.times)
+}
+
+make.hour.lines <- function(min.max.time, n.marks, alpha=0.5){
+  marked.times <- get.marked.times(min.max.time, n.marks)
+  for(marked.time in marked.times){
+    grid.lines(
+      x=c(0,1), 
+      y=c(marked.time, marked.time),
+      gp=gpar(lty=2, alpha=alpha)
+    )
+  }
+}
+
+make.time.scale <- function(min.max.time, n.marks, alpha=0.5){
+  marked.times <- get.marked.times(min.max.time, n.marks)
+  for(marked.time in marked.times){
+    hr <- as.integer(marked.time)
+    mn <- (marked.time - hr) %/% 60  # floor divide
+    if(hr >= 12){
+      md <- "PM"
+      hr <- hr - 12
+    } else {
+      md <- "AM"
+    }
+    time.string <- sprintf("%02d:%02d", hr, mn)
+    grid.text(
+      time.string, x=.5, 
+      y=unit(marked.time, 'native'),
+      just="center", gp=gpar(alpha=alpha)
+    )
+  }
+}
+
 parse.class.times <- function(filename){
   # same as def from 2/1/18 class (parseclasstimes.R)
   days.of.week <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
@@ -66,21 +137,33 @@ compute.blocks <- function(time.table){
   # again, multiple interchangeable approaches are possible.
   # output should contain block definition in columns
   # x, y, height, width, rgba
+  block.parms <- data.frame(
+    x=c(.2, .4, .6),
+    y=c(.3, .5, .7),
+    height=c(.1,.1,.1), 
+    width=c(.1,.1,.1),
+    rgba=rep("#AAAAAAFF", 3)
+  )
+  return(block.parms)
 }
 
-plot.block.times <- function(block.parms, header.names){
+plot.time.blocks <- function(block.parms, header.names){
   # block.parms: data.frame with columns: c(min.x, max.x, min.y, max.y, color)
   # header.names: names that are shown above each table column
   # -----------------------------------
   min.max.time <- compute.time.range(block.parms) # use block.parms to determine min and max time plotted
+  min.time <- min.max.time[1]
+  max.time <- min.max.time[2]
   top.left <- c('top', 'left')
+  bottom.left <- c('bottom', 'left')
   aspect.ratio <- 16./9.  # assumed. figure out a way to query this.
   padding.y <- .02
   padding.x <- padding.y * aspect.ratio
   time.scale.width <- 0.07
   header.height <- 0.12
   grid.newpage()
-  # pad the edges of the page
+  
+  # viewport for padding the edges of the page
   pushViewport(
     viewport(
       x = padding.x, y = padding.y,
@@ -90,7 +173,7 @@ plot.block.times <- function(block.parms, header.names){
     )
   )
   grid.rect()
-  
+  # viewport for the time.scale
   pushViewport(
     viewport(
       x = 0.0, y = 1.0,
@@ -99,10 +182,11 @@ plot.block.times <- function(block.parms, header.names){
       just = top.left
     )
   )
-  make.time.scale(min.max.time, per.hour = 1) 
+  make.time.scale(min.max.time) 
+  popViewport() 
+  # done making time scale. back to the padded full page
   
-  popViewport() # done making time scale. back to the padded full page
-  
+  # viewport for the column block and header
   pushViewport(
     viewport(
       x = time.scale.width,
@@ -111,8 +195,7 @@ plot.block.times <- function(block.parms, header.names){
       height = 1.0
     )
   )
-  # now in the column block viewport
-  #   make the header viewport
+  # child viewport for the header
   pushViewport(
     viewport(
       x = 0.0, y = 1.0,
@@ -122,41 +205,35 @@ plot.block.times <- function(block.parms, header.names){
     )
   )
   make.header(header.names)
+  # done making the header. back to the column block viewport
+  popViewport()
   
-  popViewport()  # done making the header. back to the column block viewport
-  
-  make.blocks(block.parms)  # plot time blocks with specified parameters (position, size, color...)
-  
-  # same viewport
-  make.hour.lines(min.max.time, per.hour = 1)
-}
-
-make.header <- function(header.names){
-  # does not make a new viewport
-  # make the header with grid
-}
-
-make.time.scale <- function(min.max.time, per.hour){
-  # does not create a new viewport
-  # make the time scale markings at the desired rate
-}
-
-make.blocks <- function(block.parms){
-  # expect columns of block.parms to have
-  # x, y, height, width, rgba
-  for(i in 1:nrow(block.parms)){
-    block.data <- block.parms[i,]
-    grid.rect(
-      x = block.data$x,
-      y = block.data$y,
-      height = block.data$height,
-      width = block.data$width,
-      gp=gpar(col="black", fill=block.data$rgba)
+  # ----------------------------------------------------------------------------
+  # ------------------ Main column block viewport with hour units --------------
+  # ----------------------------------------------------------------------------
+  pushViewport(
+    viewport(
+      x=0.0, y=0,0, just=bottom.left,
+      width=1.0, height=1-header.height,
+      yscale=c(max.time, 
+               min.time)
     )
-  }
+  )
+  grid.rect(gp=gpar(border="black"))  # border around column blocks area
+  # plot time blocks with specified parameters (position, size, color...)
+  make.blocks(block.parms)
+  # same viewport
+  make.hour.lines(min.max.time)
 }
 
-make.hour.lines <- function(min.max.time, per.hour){
-  # does not create a new viewport
-  # make horizontal dashed lines at the requested rate
+# highest level function
+display.times <- function(f.name){
+  time.table <- parse.class.times(f.name)  # this function exists
+  block.prms <- compute.blocks(time.table)  # this function doesn't exist yet
+  header.names <- get.header.names(time.table)  # needs to exists
+  plot.time.blocks(block.parms, header.names)  # this will probably be the only function with calls to grid
 }
+
+# call the function
+display.times('course_times.csv')
+#time.table <- parse.class.times("course_times.csv")
