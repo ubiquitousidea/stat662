@@ -64,19 +64,69 @@ compute.blocks <- function(time.table){
   #
   # this is where most of the code will be...
   # again, multiple interchangeable approaches are possible.
+  # output should contain block definition in columns
+  # x, y, height, width, rgba
 }
 
 plot.block.times <- function(block.parms, header.names){
   # block.parms: data.frame with columns: c(min.x, max.x, min.y, max.y, color)
   # header.names: names that are shown above each table column
   # -----------------------------------
-  # make a viewport for the header here
-  make.header(header.names)
   min.max.time <- compute.time.range(block.parms) # use block.parms to determine min and max time plotted
-  # make a viewport for the timescale here
+  top.left <- c('top', 'left')
+  aspect.ratio <- 16./9.  # assumed. figure out a way to query this.
+  padding.y <- .02
+  padding.x <- padding.y * aspect.ratio
+  time.scale.width <- 0.07
+  header.height <- 0.12
+  grid.newpage()
+  # pad the edges of the page
+  pushViewport(
+    viewport(
+      x = padding.x, y = padding.y,
+      height = 1 - (2 * padding.y),
+      width = 1 - (2 * padding.x),
+      just = top.left
+    )
+  )
+  grid.rect()
+  
+  pushViewport(
+    viewport(
+      x = 0.0, y = 1.0,
+      width = time.scale.width, 
+      height = 1.0,
+      just = top.left
+    )
+  )
   make.time.scale(min.max.time, per.hour = 1) 
-  # make viewport for the column blocks (by day or school) taking up the majority of the plot
+  
+  popViewport() # done making time scale. back to the padded full page
+  
+  pushViewport(
+    viewport(
+      x = time.scale.width,
+      y = 1.0,
+      width = 1.0 - time.scale.width,
+      height = 1.0
+    )
+  )
+  # now in the column block viewport
+  #   make the header viewport
+  pushViewport(
+    viewport(
+      x = 0.0, y = 1.0,
+      height = header.height,
+      width = 1.0,
+      just = top.left
+    )
+  )
+  make.header(header.names)
+  
+  popViewport()  # done making the header. back to the column block viewport
+  
   make.blocks(block.parms)  # plot time blocks with specified parameters (position, size, color...)
+  
   # same viewport
   make.hour.lines(min.max.time, per.hour = 1)
 }
@@ -92,9 +142,18 @@ make.time.scale <- function(min.max.time, per.hour){
 }
 
 make.blocks <- function(block.parms){
-  # preprocessing?? keep it to a minimum
-  # iterate through values of the grouping variable (day or school name)
-  # make a new viewport for each value, then plot the class block requested
+  # expect columns of block.parms to have
+  # x, y, height, width, rgba
+  for(i in 1:nrow(block.parms)){
+    block.data <- block.parms[i,]
+    grid.rect(
+      x = block.data$x,
+      y = block.data$y,
+      height = block.data$height,
+      width = block.data$width,
+      gp=gpar(col="black", fill=block.data$rgba)
+    )
+  }
 }
 
 make.hour.lines <- function(min.max.time, per.hour){
