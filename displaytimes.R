@@ -1,7 +1,18 @@
+library(grid)
+
+top.left <- c('top', 'left')
+bottom.left <- c('bottom', 'left')
+
 # little functions
-compute.time.range <- function(time.table){
-  min.time <- min(time.table$stime)
-  max.time <- max(time.table$etime)
+compute.time.range <- function(block.parms){
+  min.time <- min(
+    min(block.parms$y1),
+    min(block.parms$y2)
+  )
+  max.time <- max(
+    max(block.parms$y1), 
+    max(block.parms$y2)
+  )
   return(c(min.time, max.time))
 }
 
@@ -19,7 +30,7 @@ make.header <- function(header.names){
     grid.text(
       header.names[i], 
       x=x.vect[i], y=.5, 
-      just='centre', 
+      just='center', 
       gp=gpar(col="black", fontsize=18)
     )
   }
@@ -132,17 +143,13 @@ compute.blocks <- function(time.table){
   # class.name, start.time, end.time, day.of.week, and 
   # a series of indicators of each school name:
   # arch, div, fes, som, sph, yc.
-  #
-  # this is where most of the code will be...
-  # again, multiple interchangeable approaches are possible.
-  # output should contain block definition in columns
-  # x, y, height, width, rgba
+  
   block.parms <- data.frame(
-    x=c(.2, .4, .6),
-    y=c(.3, .5, .7),
-    height=c(.1,.1,.1), 
-    width=c(.1,.1,.1),
-    rgba=rep("#AAAAAAFF", 3)
+    x1=c(.2, .4, .6),
+    y1=c(8, 9, 10),
+    x2=c(.1,.1,.1), 
+    y2=c(9.25,10.25,11.25),
+    rgba=rep("dodgerblue2", 3)
   )
   return(block.parms)
 }
@@ -151,11 +158,10 @@ plot.time.blocks <- function(block.parms, header.names){
   # block.parms: data.frame with columns: c(min.x, max.x, min.y, max.y, color)
   # header.names: names that are shown above each table column
   # -----------------------------------
-  min.max.time <- compute.time.range(block.parms) # use block.parms to determine min and max time plotted
+  # TODO: Fix argument issue with compute.time.range
+  min.max.time <- compute.time.range(block.parms)  # this is incorrect usage based on definition above
   min.time <- min.max.time[1]
   max.time <- min.max.time[2]
-  top.left <- c('top', 'left')
-  bottom.left <- c('bottom', 'left')
   aspect.ratio <- 16./9.  # assumed. figure out a way to query this.
   padding.y <- .02
   padding.x <- padding.y * aspect.ratio
@@ -192,7 +198,8 @@ plot.time.blocks <- function(block.parms, header.names){
       x = time.scale.width,
       y = 1.0,
       width = 1.0 - time.scale.width,
-      height = 1.0
+      height = 1.0,
+      just = top.left
     )
   )
   # child viewport for the header
@@ -229,11 +236,11 @@ plot.time.blocks <- function(block.parms, header.names){
 # highest level function
 display.times <- function(f.name){
   time.table <- parse.class.times(f.name)  # this function exists
-  block.prms <- compute.blocks(time.table)  # this function doesn't exist yet
+  block.parms <- compute.blocks(time.table)  # this function doesn't exist yet
   header.names <- get.header.names(time.table)  # needs to exists
   plot.time.blocks(block.parms, header.names)  # this will probably be the only function with calls to grid
 }
 
 # call the function
 display.times('course_times.csv')
-#time.table <- parse.class.times("course_times.csv")
+time.table <- parse.class.times("course_times.csv")
