@@ -242,5 +242,5 @@ display.times <- function(f.name){
 }
 
 # call the function
-display.times('course_times.csv')
-time.table <- parse.class.times("course_times.csv")
+# display.times('course_times.csv')
+# time.table <- parse.class.times("course_times.csv")

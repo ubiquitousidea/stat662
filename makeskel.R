@@ -1,4 +1,8 @@
 # build the package skeleton
-
-source("daypanel.R")
-package.skeleton("DanPlotsTimes", list=c("day.panel", "plot.times"))
+library(roxygen2)
+code_file = "displaytimes.R"
+source(code_file)
+package.skeleton("CourseCollider", 
+                 code_files = code_file, 
+                 force = TRUE)
+roxygenise()
