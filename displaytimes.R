@@ -1,9 +1,9 @@
 library(grid)
 
-top.left <- c('top', 'left')
-bottom.left <- c('bottom', 'left')
-
-# little functions
+#' Compute the time range from the block parameters
+#' @param block.parms the data frame containing the geometric information 
+#' about the time blocks to be plotted
+#' @return a vector of (min time , max time)
 compute.time.range <- function(block.parms){
   min.time <- min(
     min(block.parms$y1),
@@ -16,10 +16,18 @@ compute.time.range <- function(block.parms){
   return(c(min.time, max.time))
 }
 
+#' Get the names in the header column values from a time table data frame
+#' @param time.table a data frame with columns start.time, end.time, day.of.week
+#' @param group.by name of the grouping variable column in time.table data frame
+#' @return vector of unique column names
 get.header.names <- function(time.table, group.by="day.of.week"){
   names <- unique(time.table[,group.by])
 }
 
+
+#' Draw the header on the plot using grid
+#' @param header.names Names of the columsn to label in the table header
+#' @return NULL
 make.header <- function(header.names){
   n.names <- length(header.names)
   x.vect <- seq(
@@ -36,6 +44,9 @@ make.header <- function(header.names){
   }
 }
 
+#' Draw the time blocks according to block.parms
+#' @param block.params data frame of time block information
+#' @return NULL
 make.blocks <- function(block.parms){
   # expect columns of block.parms to have
   # x, y, height, width, rgba
@@ -46,17 +57,22 @@ make.blocks <- function(block.parms){
       y = block.data$y,
       height = block.data$height,
       width = block.data$width,
-      just=top.left,
+      just=c('top', 'left'),
       gp=gpar(col="black", fill=block.data$rgba)
     )
   }
 }
 
+#' Determine the times at which a line marking should be drawn
+#' @param min.max.time a vector of (min time, max time)
+#' @param n.marks number of marks to produce. If a non-integer is provided
+#' marks are made at each hour
+#' @return vector of times
 get.marked.times <- function(min.max.time, n.marks=NULL){
   min.time <- min.max.time[1]
   max.time <- min.max.time[2]
   if(!is.integer(n.marks)){
-    n.marks <- as.integer(max.time - min.time)  # default is 1 mark per hour
+    n.marks <- as.integer(max.time - min.time + 1)  # default is 1 mark per hour
   }
   marked.times <- seq(min.max.time[1], 
                       min.max.time[2], 
@@ -64,6 +80,11 @@ get.marked.times <- function(min.max.time, n.marks=NULL){
   return(marked.times)
 }
 
+#' Mark the hour lines on the main plot area
+#' @param min.max.time vector of (min time, max time)
+#' @param n.marks the number of time marking to draw
+#' @param alpha transparency of the marked lines
+#' @return NULL
 make.hour.lines <- function(min.max.time, n.marks, alpha=0.5){
   marked.times <- get.marked.times(min.max.time, n.marks)
   for(marked.time in marked.times){
@@ -75,6 +96,11 @@ make.hour.lines <- function(min.max.time, n.marks, alpha=0.5){
   }
 }
 
+#' Draw the time scale on the plot
+#' @param min.max.time vector of (min time, max time)
+#' @param n.marks number of markings to make
+#' @param alpha transparency for the time marking names
+#' @return NULL
 make.time.scale <- function(min.max.time, n.marks, alpha=0.5){
   marked.times <- get.marked.times(min.max.time, n.marks)
   for(marked.time in marked.times){
@@ -86,7 +112,7 @@ make.time.scale <- function(min.max.time, n.marks, alpha=0.5){
     } else {
       md <- "AM"
     }
-    time.string <- sprintf("%02d:%02d", hr, mn)
+    time.string <- sprintf("%02d:%02d %s", hr, mn, md)
     grid.text(
       time.string, x=.5, 
       y=unit(marked.time, 'native'),
@@ -95,6 +121,10 @@ make.time.scale <- function(min.max.time, n.marks, alpha=0.5){
   }
 }
 
+#' Parse Class times from CSV in a specified format
+#' 
+#' @param filename name of the csv file to read
+#' @return data frame with columns start.time, end.time, day.of.week and school indicators
 parse.class.times <- function(filename){
   # same as def from 2/1/18 class (parseclasstimes.R)
   days.of.week <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
@@ -136,6 +166,12 @@ parse.class.times <- function(filename){
   return(output)
 }
 
+#' Compute the time block parameters given the time table
+#' This involves assigning the courses to non-overlapping
+#' 
+#' @param time.table a time table data frame of the format that is produced by
+#' \link{parse.class.times} function.
+#' @return block parameters; a data frame
 compute.blocks <- function(time.table){
   # multiple approaches possible here. if input/output is the same
   # the options could be interchangeable
@@ -154,12 +190,12 @@ compute.blocks <- function(time.table){
   return(block.parms)
 }
 
+#' Plot the time blocks using grid
+#' @param block.parms data frame of block parameters
+#' @param header.names vector of grouping variable names
+#' @return NULL
 plot.time.blocks <- function(block.parms, header.names){
-  # block.parms: data.frame with columns: c(min.x, max.x, min.y, max.y, color)
-  # header.names: names that are shown above each table column
-  # -----------------------------------
-  # TODO: Fix argument issue with compute.time.range
-  min.max.time <- compute.time.range(block.parms)  # this is incorrect usage based on definition above
+  min.max.time <- compute.time.range(block.parms)
   min.time <- min.max.time[1]
   max.time <- min.max.time[2]
   aspect.ratio <- 16./9.  # assumed. figure out a way to query this.
@@ -175,7 +211,7 @@ plot.time.blocks <- function(block.parms, header.names){
       x = padding.x, y = padding.y,
       height = 1 - (2 * padding.y),
       width = 1 - (2 * padding.x),
-      just = top.left
+      just = c('top', 'left')
     )
   )
   grid.rect()
@@ -185,7 +221,7 @@ plot.time.blocks <- function(block.parms, header.names){
       x = 0.0, y = 1.0,
       width = time.scale.width, 
       height = 1.0,
-      just = top.left
+      just = c('top', 'left')
     )
   )
   make.time.scale(min.max.time) 
@@ -199,7 +235,7 @@ plot.time.blocks <- function(block.parms, header.names){
       y = 1.0,
       width = 1.0 - time.scale.width,
       height = 1.0,
-      just = top.left
+      just = c('top', 'left')
     )
   )
   # child viewport for the header
@@ -208,7 +244,7 @@ plot.time.blocks <- function(block.parms, header.names){
       x = 0.0, y = 1.0,
       height = header.height,
       width = 1.0,
-      just = top.left
+      just = c('top', 'left')
     )
   )
   make.header(header.names)
@@ -220,7 +256,7 @@ plot.time.blocks <- function(block.parms, header.names){
   # ----------------------------------------------------------------------------
   pushViewport(
     viewport(
-      x=0.0, y=0,0, just=bottom.left,
+      x=0.0, y=0,0, just=c('bottom', 'left'),
       width=1.0, height=1-header.height,
       yscale=c(max.time, 
                min.time)
@@ -233,7 +269,10 @@ plot.time.blocks <- function(block.parms, header.names){
   make.hour.lines(min.max.time)
 }
 
-# highest level function
+#' Main function that plots times given the name of the file that contains the
+#' course times
+#' 
+#' @param f.name name of the csv file containing the course time data
 display.times <- function(f.name){
   time.table <- parse.class.times(f.name)  # this function exists
   block.parms <- compute.blocks(time.table)  # this function doesn't exist yet
