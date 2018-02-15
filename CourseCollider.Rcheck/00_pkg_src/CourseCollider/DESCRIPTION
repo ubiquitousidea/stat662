@@ -1,0 +1,12 @@
+Package: CourseCollider
+Type: Package
+Title: Time block visualization aide
+Version: 1.0
+Date: 2018-02-07
+Author: Dan Snyder, Leila Bengali
+Maintainer: Dan Snyder <daniel.a.snyder@yale.edu>
+Description: Plots the times of courses across schools
+License: MIT
+RoxygenNote: 6.0.1
+NeedsCompilation: no
+Packaged: 2018-02-15 19:40:26 UTC; danielsnyder

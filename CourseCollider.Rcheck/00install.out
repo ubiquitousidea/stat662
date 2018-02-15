@@ -1,0 +1,8 @@
+* installing *source* package ‘CourseCollider’ ...
+** R
+** preparing package for lazy loading
+Error in as.character(package) : 
+  cannot coerce type 'closure' to vector of type 'character'
+Error : unable to load R code in package ‘CourseCollider’
+ERROR: lazy loading failed for package ‘CourseCollider’
+* removing ‘/Users/danielsnyder/stat662/CourseCollider.Rcheck/CourseCollider’

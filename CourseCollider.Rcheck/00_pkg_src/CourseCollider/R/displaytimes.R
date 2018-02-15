@@ -1,4 +1,4 @@
-library(grid)
+requireNamespace(grid, quietly = FALSE)
 
 #' Compute the time range from the block parameters
 #' @param block.parms the data frame containing the geometric information 
@@ -273,6 +273,7 @@ plot.time.blocks <- function(block.parms, header.names){
 #' course times
 #' 
 #' @param f.name name of the csv file containing the course time data
+#' @export
 display.times <- function(f.name){
   time.table <- parse.class.times(f.name)  # this function exists
   block.parms <- compute.blocks(time.table)  # this function doesn't exist yet
