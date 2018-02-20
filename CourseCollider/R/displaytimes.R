@@ -1,4 +1,8 @@
-requireNamespace("grid", quietly = FALSE)
+library("grid")
+# requireNamespace("grid", quietly = FALSE)
+
+days.of.week <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+schools <- c("arch","div","fes","som","sph","yc")  # suffix for school column names
 
 #' Compute the time range from the block parameters
 #' @param block.parms the data frame containing the geometric information 
@@ -13,7 +17,7 @@ compute.time.range <- function(block.parms){
     max(block.parms$y1), 
     max(block.parms$y2)
   )
-  return(c(min.time, max.time))
+  return(c(floor(min.time), ceiling(max.time)))
 }
 
 #' Get the names in the header column values from a time table data frame
@@ -21,19 +25,20 @@ compute.time.range <- function(block.parms){
 #' @param group.by name of the grouping variable column in time.table data frame
 #' @return vector of unique column names
 get.header.names <- function(time.table, group.by="day.of.week"){
-  names <- unique(time.table[,group.by])
+  return(days.of.week)
 }
 
 
 #' Draw the header on the plot using grid
-#' @param header.names Names of the columsn to label in the table header
+#' @param header.names Names of the columns to label in the table header
 #' @return NULL
 make.header <- function(header.names){
   n.names <- length(header.names)
   x.vect <- seq(
-    0.5 * n.names, 
-    1 - (0.5 * n.names), 
-    n.names)
+    from = 1/n.names/2,
+    to = 1 - 1/n.names/2,
+    length.out = n.names
+  )
   for(i in 1:n.names){
     grid.text(
       header.names[i], 
@@ -53,11 +58,11 @@ make.blocks <- function(block.parms){
   for(i in 1:nrow(block.parms)){
     block.data <- block.parms[i,]
     grid.rect(
-      x = block.data$x,
-      y = block.data$y,
-      height = block.data$height,
-      width = block.data$width,
-      just=c('top', 'left'),
+      x = block.data$x1,
+      y = block.data$y1,
+      height = block.data$y2 - block.data$y1,
+      width = block.data$x2 - block.data$x1,
+      just=c('left', 'bottom'),
       gp=gpar(col="black", fill=block.data$rgba)
     )
   }
@@ -74,9 +79,9 @@ get.marked.times <- function(min.max.time, n.marks=NULL){
   if(!is.integer(n.marks)){
     n.marks <- as.integer(max.time - min.time + 1)  # default is 1 mark per hour
   }
-  marked.times <- seq(min.max.time[1], 
-                      min.max.time[2], 
-                      n.marks)
+  marked.times <- seq(from = min.time, 
+                      to = max.time, 
+                      length.out = n.marks)
   return(marked.times)
 }
 
@@ -85,7 +90,7 @@ get.marked.times <- function(min.max.time, n.marks=NULL){
 #' @param n.marks the number of time marking to draw
 #' @param alpha transparency of the marked lines
 #' @return NULL
-make.hour.lines <- function(min.max.time, n.marks, alpha=0.5){
+make.hour.lines <- function(min.max.time, n.marks=NULL, alpha=0.5){
   marked.times <- get.marked.times(min.max.time, n.marks)
   for(marked.time in marked.times){
     grid.lines(
@@ -101,8 +106,10 @@ make.hour.lines <- function(min.max.time, n.marks, alpha=0.5){
 #' @param n.marks number of markings to make
 #' @param alpha transparency for the time marking names
 #' @return NULL
-make.time.scale <- function(min.max.time, n.marks, alpha=0.5){
+make.time.scale <- function(min.max.time, n.marks=NULL, alpha=0.5){
   marked.times <- get.marked.times(min.max.time, n.marks)
+  # min.time <- min.max.time[1]
+  # max.time <- min.max.time[2]
   for(marked.time in marked.times){
     hr <- as.integer(marked.time)
     mn <- (marked.time - hr) %/% 60  # floor divide
@@ -127,8 +134,6 @@ make.time.scale <- function(min.max.time, n.marks, alpha=0.5){
 #' @return data frame with columns start.time, end.time, day.of.week and school indicators
 parse.class.times <- function(filename){
   # same as def from 2/1/18 class (parseclasstimes.R)
-  days.of.week <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
-  schools <- c("arch","div","fes","som","sph","yc")  # suffix for school column names
   raw.data <- read.csv(filename, as.is=TRUE)
   n.rows <- nrow(raw.data)
   output <- data.frame()
@@ -180,13 +185,16 @@ compute.blocks <- function(time.table){
   # a series of indicators of each school name:
   # arch, div, fes, som, sph, yc.
   
-  block.parms <- data.frame(
-    x1=c(.2, .4, .6),
-    y1=c(8, 9, 10),
-    x2=c(.1,.1,.1), 
-    y2=c(9.25,10.25,11.25),
-    rgba=rep("dodgerblue2", 3)
-  )
+  # block.parms <- data.frame(
+  #   x1=c(.2, .4, .6),
+  #   y1=c(8, 9, 10),
+  #   x2=c(.1,.1,.1), 
+  #   y2=c(9.25,10.25,11.25),
+  #   rgba=rep("dodgerblue2", 3)
+  # )
+  for(i.row in 1:nrow(time.table)){
+    
+  }
   return(block.parms)
 }
 
@@ -200,7 +208,7 @@ plot.time.blocks <- function(block.parms, header.names){
   max.time <- min.max.time[2]
   aspect.ratio <- 16./9.  # assumed. figure out a way to query this.
   padding.y <- .02
-  padding.x <- padding.y * aspect.ratio
+  padding.x <- padding.y / aspect.ratio
   time.scale.width <- 0.07
   header.height <- 0.12
   grid.newpage()
@@ -211,7 +219,7 @@ plot.time.blocks <- function(block.parms, header.names){
       x = padding.x, y = padding.y,
       height = 1 - (2 * padding.y),
       width = 1 - (2 * padding.x),
-      just = c('top', 'left')
+      just = c('left', 'bottom')
     )
   )
   grid.rect()
@@ -221,7 +229,7 @@ plot.time.blocks <- function(block.parms, header.names){
       x = 0.0, y = 1.0,
       width = time.scale.width, 
       height = 1.0,
-      just = c('top', 'left')
+      just = c('left', 'top')
     )
   )
   make.time.scale(min.max.time) 
@@ -235,7 +243,7 @@ plot.time.blocks <- function(block.parms, header.names){
       y = 1.0,
       width = 1.0 - time.scale.width,
       height = 1.0,
-      just = c('top', 'left')
+      just = c('left', 'top')
     )
   )
   # child viewport for the header
@@ -244,7 +252,7 @@ plot.time.blocks <- function(block.parms, header.names){
       x = 0.0, y = 1.0,
       height = header.height,
       width = 1.0,
-      just = c('top', 'left')
+      just = c('left', 'top')
     )
   )
   make.header(header.names)
@@ -256,13 +264,11 @@ plot.time.blocks <- function(block.parms, header.names){
   # ----------------------------------------------------------------------------
   pushViewport(
     viewport(
-      x=0.0, y=0,0, just=c('bottom', 'left'),
-      width=1.0, height=1-header.height,
-      yscale=c(max.time, 
-               min.time)
+      x=0.0, y=0.0, just=c('left', 'bottom'),
+      width=1, height=1-header.height
     )
   )
-  grid.rect(gp=gpar(border="black"))  # border around column blocks area
+  grid.rect(gp=gpar(bg='gray',border="black"))  # border around column blocks area
   # plot time blocks with specified parameters (position, size, color...)
   make.blocks(block.parms)
   # same viewport
@@ -282,5 +288,7 @@ display.times <- function(f.name){
 }
 
 # call the function
-# display.times('course_times.csv')
+display.times('~/stat662/course_times.csv')
+# time.table <- parse.class.times("course_times.csv")
+# time.table <- parse.class.times("course_times.csv")
 # time.table <- parse.class.times("course_times.csv")
