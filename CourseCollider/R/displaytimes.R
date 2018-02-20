@@ -185,16 +185,27 @@ compute.blocks <- function(time.table){
   # a series of indicators of each school name:
   # arch, div, fes, som, sph, yc.
   
-  # block.parms <- data.frame(
-  #   x1=c(.2, .4, .6),
-  #   y1=c(8, 9, 10),
-  #   x2=c(.1,.1,.1), 
-  #   y2=c(9.25,10.25,11.25),
-  #   rgba=rep("dodgerblue2", 3)
-  # )
-  for(i.row in 1:nrow(time.table)){
-    
-  }
+  block.parms <- data.frame(
+    x1=c(.2, .4, .6),
+    y1=c(8, 9, 10),
+    x2=c(.1,.1,.1),
+    y2=c(9.25,10.25,11.25),
+    rgba=rep("dodgerblue2", 3)
+  )
+  # block.parms <- data.frame()
+  # time.table$day.col <- NA  # day column will be an integer denoting which position the block should take in the day column viewport
+  # time.table$x1 <- NA
+  # time.table$x2 <- NA
+  # time.table$y1 <- NA
+  # time.table$y2 <- NA
+  # for(day.name in days.of.week){
+  #   classes <- time.table[time.table$day.of.week == day.name]
+  #   classes.this.day <- nrow(classes)
+  #   for(i in 1:classes.this.day){
+  #     # this is where fancier logic could be employed to make better use of horizontal space
+  #     classes$day.col[i] <- i
+  #   }
+  # }
   return(block.parms)
 }
 
